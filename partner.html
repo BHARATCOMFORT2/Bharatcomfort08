@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partner Dashboard - BharatComfort</title>
+<link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<header>
+  <h1>Partner Dashboard</h1>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<main>
+  <!-- Add Listing -->
+  <section>
+    <h2>Add New Listing</h2>
+    <form id="addListingForm">
+      <input type="text" id="title" placeholder="Listing Title" required>
+      <textarea id="details" placeholder="Details" required></textarea>
+      <input type="text" id="services" placeholder="Services (comma separated)">
+      <input type="number" id="price" placeholder="Average Price" required>
+      <button type="submit">Add Listing</button>
+    </form>
+  </section>
+
+  <!-- My Listings -->
+  <section>
+    <h2>My Listings</h2>
+    <table id="partnerListings">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Price</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script type="module" src="../js/partner.js"></script>
+</body>
+</html>
