@@ -135,3 +135,18 @@ window.updateBookingStatus = async function(bookingId, status){
 }
 
 loadAllBookings();
+import { sendNotification } from "../js/notify.js";
+
+window.updateBookingStatus = async function(bookingId, status){
+  const bookingRef = doc(db, "bookings", bookingId);
+  const bookingSnap = await getDoc(bookingRef);
+  if(bookingSnap.exists()){
+    const booking = bookingSnap.data();
+    await updateDoc(bookingRef, { status });
+
+    // Notify user
+    sendNotification(booking.user, `Your booking is ${status}`, "dashboard/user.html#bookings");
+  }
+  alert(`Booking ${status}`);
+  loadAllBookings();
+}
