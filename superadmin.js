@@ -150,3 +150,37 @@ window.updateBookingStatus = async function(bookingId, status){
   alert(`Booking ${status}`);
   loadAllBookings();
 }
+import { collection, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+async function loadNotifications(userId){
+  const container = document.getElementById("notificationList");
+  container.innerHTML = "";
+
+  const q = query(collection(db, "notifications"), where("toUser", "==", userId));
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(async (docSnap) => {
+    const notif = docSnap.data();
+    const div = document.createElement("div");
+    div.classList.add("notification");
+    div.innerHTML = `
+      <p>${notif.message}</p>
+      <a href="${notif.link}">View</a>
+    `;
+    container.appendChild(div);
+
+    // Mark as read
+    await updateDoc(doc(db, "notifications", docSnap.id), { read: true });
+  });
+}
+
+window.toggleNotifications = function(){
+  document.getElementById("notificationList").classList.toggle("hidden");
+}
+
+// Call after login
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    loadNotifications(user.uid);
+  }
+});
