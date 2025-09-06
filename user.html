@@ -73,6 +73,13 @@
       <input type="text" id="originInput" placeholder="Enter origin (city / address)">
       <button id="useLocationBtn">Use my location</button>
     </div>
+<section id="walletSection">
+  <h2>My Wallet</h2>
+  <p><strong>Balance:</strong> ₹<span id="walletBalance">0</span></p>
+  <button onclick="topUpWallet()">Top Up Wallet</button>
+  <h3>My Transactions</h3>
+  <div id="walletTransactions"></div>
+</section>
 
     <div>
       <label>Destination</label><br>
