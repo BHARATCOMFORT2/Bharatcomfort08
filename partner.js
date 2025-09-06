@@ -90,3 +90,30 @@ window.editListing = async function(listingId, title, details, price){
     loadMyListings();
   }
 }
+import { getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+async function loadPartnerBookings(){
+  const tableBody = document.querySelector("#partnerBookings tbody");
+  tableBody.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "bookings"));
+  for (let bookingDoc of snapshot.docs){
+    const booking = bookingDoc.data();
+    const listingSnap = await getDoc(doc(db, "listings", booking.listingId));
+
+    if(listingSnap.exists() && listingSnap.data().owner === partnerId){
+      const listing = listingSnap.data();
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${booking.name}</td>
+        <td>${listing.title}</td>
+        <td>${booking.date}</td>
+        <td>${booking.guests}</td>
+        <td>${booking.status}</td>
+      `;
+      tableBody.appendChild(tr);
+    }
+  }
+}
+
+loadPartnerBookings();
