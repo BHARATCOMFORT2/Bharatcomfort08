@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BharatComfort - Travel Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>BharatComfort Travel Planner</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="user-dashboard.html">My Dashboard</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="planner">
+      <h2>Plan Your Trip</h2>
+      <input type="text" id="originInput" placeholder="Enter Origin">
+      <input type="text" id="destinationInput" placeholder="Enter Destination">
+
+      <select id="travelMode">
+        <option value="DRIVING">Driving</option>
+        <option value="WALKING">Walking</option>
+        <option value="BICYCLING">Bicycling</option>
+        <option value="TRANSIT">Public Transport</option>
+        <option value="AIR">Airways (Nearest Airports)</option>
+        <option value="RAIL">Railways (Nearest Stations)</option>
+      </select>
+
+      <button onclick="calculateRoute()">Plan Trip</button>
+    </section>
+
+    <section id="mapSection">
+      <h2>Map View</h2>
+      <div id="map" style="height:400px; width:100%;"></div>
+    </section>
+
+    <section id="tripResults"></section>
+
+    <section id="saveTripSection" style="display:none;">
+      <h3>Save This Trip</h3>
+      <input type="date" id="tripDate" required>
+      <textarea id="tripNotes" placeholder="Add notes (optional)"></textarea>
+      <button onclick="saveTrip()">Save Trip</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 BharatComfort. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="travel.js"></script>
+  <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places"></script>
+</body>
+</html>
