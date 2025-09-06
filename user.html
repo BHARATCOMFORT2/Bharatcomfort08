@@ -63,7 +63,51 @@
     <tbody></tbody>
   </table>
 </section>
+<!-- Travel Planner (replace existing planner section) -->
+<section>
+  <h2>Travel Planner</h2>
 
+  <div class="planner-row">
+    <div>
+      <label>Origin (leave empty to use my location)</label><br>
+      <input type="text" id="originInput" placeholder="Enter origin (city / address)">
+      <button id="useLocationBtn">Use my location</button>
+    </div>
+
+    <div>
+      <label>Destination</label><br>
+      <input type="text" id="destinationInput" placeholder="Enter destination (city / hotel / landmark)" required>
+    </div>
+
+    <div>
+      <label>Mode</label><br>
+      <select id="plannerMode">
+        <option value="DRIVING">Road (Car)</option>
+        <option value="TRANSIT">Transit (Bus/Train)</option>
+        <option value="WALKING">Walking</option>
+        <option value="AIR">Air (nearest airports)</option>
+        <option value="RAIL">Rail (nearest train stations)</option>
+      </select>
+    </div>
+
+    <div style="margin-top:22px;">
+      <button id="planBtn">Plan Travel</button>
+    </div>
+  </div>
+
+  <div id="plannerResult" style="margin-top:16px;"></div>
+</section>
+
+<!-- Map Section (keep this; map div required) -->
+<section id="mapSection">
+  <h2>Map View</h2>
+  <div id="map" style="height:450px;width:100%;"></div>
+</section>
+
+<!-- Make sure your Google Maps script includes libraries=places and your API key (replace YOUR_KEY) -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap">
+</script>
   <!-- Post Review -->
   <section>
     <h2>Post Review</h2>
