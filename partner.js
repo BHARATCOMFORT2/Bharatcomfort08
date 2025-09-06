@@ -151,3 +151,67 @@ onAuthStateChanged(auth, (user) => {
     loadNotifications(user.uid);
   }
 });
+import { db, auth } from "./firebase.js";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadPartnerWallet(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const ref = doc(db, "wallets", user.uid);
+  const snap = await getDoc(ref);
+
+  if(snap.exists()){
+    document.getElementById("partnerBalance").innerText = snap.data().balance;
+  } else {
+    document.getElementById("partnerBalance").innerText = "0";
+  }
+
+  loadPartnerTransactions();
+}
+
+async function loadPartnerTransactions(){
+  const user = auth.currentUser;
+  const q = query(collection(db, "transactions"), where("partnerId", "==", user.uid));
+  const snap = await getDocs(q);
+
+  const container = document.getElementById("partnerTransactions");
+  container.innerHTML = "";
+
+  snap.forEach(docSnap => {
+    const t = docSnap.data();
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <p><strong>${t.type}</strong> - ₹${t.amount}</p>
+      <p>${t.method} | ${t.status}</p>
+      <small>${t.createdAt?.toDate().toLocaleString()}</small>
+    `;
+    container.appendChild(div);
+  });
+}
+
+window.requestWithdrawal = async function(){
+  const user = auth.currentUser;
+  const ref = doc(db, "wallets", user.uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists() || snap.data().balance <= 0){
+    alert("No balance available for withdrawal.");
+    return;
+  }
+
+  await addDoc(collection(db, "transactions"), {
+    partnerId: user.uid,
+    amount: snap.data().balance,
+    type: "Withdrawal Request",
+    method: "Bank Transfer",
+    status: "Pending",
+    createdAt: serverTimestamp()
+  });
+
+  alert("Withdrawal request submitted!");
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadPartnerWallet();
+});
