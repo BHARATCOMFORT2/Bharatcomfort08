@@ -121,3 +121,29 @@ window.replyReview = async function(listingId, reviewIndex){
     }
   }
 }
+async function loadStaffBookings(){
+  const tableBody = document.querySelector("#staffBookings tbody");
+  tableBody.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "bookings"));
+  for (let bookingDoc of snapshot.docs){
+    const booking = bookingDoc.data();
+    if(assignedListings.includes(booking.listingId)){
+      const listingSnap = await getDoc(doc(db, "listings", booking.listingId));
+      if(listingSnap.exists()){
+        const listing = listingSnap.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${booking.name}</td>
+          <td>${listing.title}</td>
+          <td>${booking.date}</td>
+          <td>${booking.guests}</td>
+          <td>${booking.status}</td>
+        `;
+        tableBody.appendChild(tr);
+      }
+    }
+  }
+}
+
+loadStaffBookings();
