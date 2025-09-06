@@ -215,3 +215,45 @@ window.requestWithdrawal = async function(){
 auth.onAuthStateChanged(user => {
   if(user) loadPartnerWallet();
 });
+import { db, auth } from "./firebase.js";
+import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadPartnerBookings(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const q = query(collection(db, "bookings"), where("partnerId", "==", user.uid));
+  const snap = await getDocs(q);
+
+  const container = document.getElementById("partnerBookingsContainer");
+  container.innerHTML = "";
+
+  if(snap.empty){
+    container.innerHTML = "<p>No bookings received yet.</p>";
+    return;
+  }
+
+  for(const docSnap of snap.docs){
+    const booking = docSnap.data();
+
+    const listingRef = doc(db, "listings", booking.listingId);
+    const listingSnap = await getDoc(listingRef);
+    const listingName = listingSnap.exists() ? listingSnap.data().title : "Unknown Listing";
+
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <h3>${listingName}</h3>
+      <p><strong>Booked By:</strong> ${booking.userId}</p>
+      <p><strong>Amount:</strong> ₹${booking.amount}</p>
+      <p><strong>Status:</strong> ${booking.status}</p>
+      <p><strong>Payment:</strong> ${booking.paymentMethod}</p>
+      <small>${booking.createdAt?.toDate().toLocaleString()}</small>
+    `;
+    container.appendChild(div);
+  }
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadPartnerBookings();
+});
