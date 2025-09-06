@@ -650,3 +650,43 @@ window.visitListingByLatLng = function(lat, lng){
   const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   window.open(url, "_blank");
 }
+import { db, auth } from "./firebase.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadMyTrips(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const q = query(collection(db, "trips"), where("userId", "==", user.uid));
+  const snapshot = await getDocs(q);
+
+  const container = document.getElementById("tripsContainer");
+  container.innerHTML = "";
+
+  if(snapshot.empty){
+    container.innerHTML = "<p>No trips saved yet.</p>";
+    return;
+  }
+
+  snapshot.forEach(docSnap => {
+    const trip = docSnap.data();
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <h3>${trip.origin} → ${trip.destination}</h3>
+      <p><strong>Mode:</strong> ${trip.mode}</p>
+      <p><strong>Distance:</strong> ${trip.distance}</p>
+      <p><strong>Duration:</strong> ${trip.duration}</p>
+      <p><strong>Date:</strong> ${trip.date}</p>
+      <p><strong>Notes:</strong> ${trip.notes || "No notes"}</p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Load trips when dashboard opens
+auth.onAuthStateChanged(user => {
+  if(user){
+    loadMyTrips();
+  }
+});
