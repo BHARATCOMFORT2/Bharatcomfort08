@@ -21,6 +21,31 @@
   <section>
     <h2>Browse Listings</h2>
     <input type="text" id="searchBox" placeholder="Search listings...">
+    <section id="searchSection">
+  <input type="text" id="searchInput" placeholder="Search by destination, hotel, or restaurant...">
+
+  <select id="priceFilter">
+    <option value="">Any Price</option>
+    <option value="low">Below ₹1000</option>
+    <option value="mid">₹1000 - ₹5000</option>
+    <option value="high">Above ₹5000</option>
+  </select>
+
+  <select id="serviceFilter">
+    <option value="">All Services</option>
+    <option value="wifi">Free WiFi</option>
+    <option value="parking">Parking</option>
+    <option value="breakfast">Breakfast Included</option>
+    <option value="ac">Air Conditioning</option>
+  </select>
+
+  <button onclick="applyFilters()">Search</button>
+</section>
+
+<section id="mapSection">
+  <h2>Map View</h2>
+  <div id="map" style="height:400px;width:100%;"></div>
+</section>
     <div id="listingContainer"></div>
   </section>
 <!-- My Bookings -->
