@@ -385,3 +385,268 @@ function loadMap(listings){
     }
   });
 }
+
+let map, directionsService, directionsRenderer, distanceMatrixService, placesService;
+let userCoords = null; // { lat, lng }
+
+window.initMap = function() {
+  // Default center (Patna)
+  const defaultCenter = { lat: 25.5941, lng: 85.1376 };
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: defaultCenter,
+    zoom: 12,
+  });
+
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer({ map });
+  distanceMatrixService = new google.maps.DistanceMatrixService();
+  placesService = new google.maps.places.PlacesService(map);
+};
+
+// Utility: geocode an address to LatLng
+async function geocodeAddress(address) {
+  return new Promise((resolve, reject) => {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        const loc = results[0].geometry.location;
+        resolve({ lat: loc.lat(), lng: loc.lng(), label: results[0].formatted_address });
+      } else {
+        reject(new Error("Geocode failed: " + status));
+      }
+    });
+  });
+}
+
+// Utility: find nearest place (type = 'airport' or 'train_station')
+async function findNearestPlace(type, locationLatLng, radius = 50000) {
+  return new Promise((resolve, reject) => {
+    const request = {
+      location: new google.maps.LatLng(locationLatLng.lat, locationLatLng.lng),
+      radius,
+      type: type // 'airport' or 'train_station'
+    };
+    placesService.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results.length) {
+        // pick the nearest (first is usually nearest)
+        const r = results[0];
+        resolve({
+          name: r.name,
+          placeId: r.place_id,
+          location: {
+            lat: r.geometry.location.lat(),
+            lng: r.geometry.location.lng()
+          },
+          address: r.vicinity || r.formatted_address || ""
+        });
+      } else {
+        resolve(null); // no station/airport found within radius
+      }
+    });
+  });
+}
+
+// Use browser's geolocation
+document.getElementById("useLocationBtn").addEventListener("click", async () => {
+  if (!navigator.geolocation) return alert("Geolocation not supported by your browser.");
+  navigator.geolocation.getCurrentPosition((pos) => {
+    userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    document.getElementById("originInput").value = "My Location";
+    map.setCenter(userCoords);
+    new google.maps.Marker({ position: userCoords, map, title: "You are here" });
+  }, (err) => {
+    alert("Could not get your location: " + err.message);
+  }, { enableHighAccuracy: true });
+});
+
+// Plan Travel button
+document.getElementById("planBtn").addEventListener("click", async () => {
+  const originText = document.getElementById("originInput").value.trim();
+  const destText = document.getElementById("destinationInput").value.trim();
+  const mode = document.getElementById("plannerMode").value;
+
+  if (!destText) return alert("Please enter destination.");
+
+  let originLatLng = null;
+  try {
+    if (originText && originText.toLowerCase() !== "my location") {
+      originLatLng = await geocodeAddress(originText);
+    } else if (userCoords) {
+      originLatLng = { lat: userCoords.lat, lng: userCoords.lng, label: "My Location" };
+    } else {
+      // try browser geolocation if origin not specified
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true })
+      );
+      userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      originLatLng = { lat: userCoords.lat, lng: userCoords.lng, label: "My Location" };
+      new google.maps.Marker({ position: userCoords, map, title: "You are here" });
+    }
+  } catch (e) {
+    return alert("Origin lookup failed: " + e.message);
+  }
+
+  // Geocode destination
+  let destLatLng = null;
+  try {
+    destLatLng = await geocodeAddress(destText);
+  } catch (e) {
+    return alert("Destination lookup failed: " + e.message);
+  }
+
+  // Clear previous route
+  directionsRenderer.setDirections({ routes: [] });
+
+  // If mode is AIR or RAIL, find nearest airport / station and compute distance/time to that point
+  if (mode === "AIR" || mode === "RAIL") {
+    const type = mode === "AIR" ? "airport" : "train_station";
+    // Search near destination first (most helpful), if not found then near origin
+    let nearest = await findNearestPlace(type, destLatLng);
+    if (!nearest) nearest = await findNearestPlace(type, originLatLng);
+
+    // Compute distance/time from origin -> nearest place and nearest place -> destination
+    const resultHtml = document.getElementById("plannerResult");
+    resultHtml.innerHTML = `<h3>Nearest ${mode === "AIR" ? "Airport" : "Train Station"}</h3>`;
+
+    if (!nearest) {
+      resultHtml.innerHTML += `<p>No nearby ${type} found (within search radius). Try a different location.</p>`;
+      return;
+    }
+
+    // Distance and duration between origin and nearest place
+    distanceMatrixService.getDistanceMatrix({
+      origins: [ new google.maps.LatLng(originLatLng.lat, originLatLng.lng) ],
+      destinations: [ new google.maps.LatLng(nearest.location.lat, nearest.location.lng) ],
+      travelMode: google.maps.TravelMode.DRIVING,
+      unitSystem: google.maps.UnitSystem.METRIC,
+    }, (response1, status1) => {
+      if (status1 !== "OK") {
+        resultHtml.innerHTML += `<p>Error getting distance info: ${status1}</p>`;
+        return;
+      }
+
+      const el1 = response1.rows[0].elements[0];
+      const originToNearest = el1.status === "OK" ? `${el1.distance.text} • ${el1.duration.text}` : "N/A";
+
+      // Distance between nearest place and destination (likely short)
+      distanceMatrixService.getDistanceMatrix({
+        origins: [ new google.maps.LatLng(nearest.location.lat, nearest.location.lng) ],
+        destinations: [ new google.maps.LatLng(destLatLng.lat, destLatLng.lng) ],
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
+      }, (response2, status2) => {
+        if (status2 !== "OK") {
+          resultHtml.innerHTML += `<p>Error getting onward distance: ${status2}</p>`;
+          return;
+        }
+        const el2 = response2.rows[0].elements[0];
+        const nearestToDest = el2.status === "OK" ? `${el2.distance.text} • ${el2.duration.text}` : "N/A";
+
+        // Render result
+        resultHtml.innerHTML += `
+          <div class="travel-card">
+            <h4>${nearest.name}</h4>
+            <p><strong>Address:</strong> ${nearest.address}</p>
+            <p><strong>From Origin → ${nearest.name}:</strong> ${originToNearest}</p>
+            <p><strong>${nearest.name} → Destination:</strong> ${nearestToDest}</p>
+            <p>
+              <button onclick="openMapsDirections(${originLatLng.lat}, ${originLatLng.lng}, ${nearest.location.lat}, ${nearest.location.lng})">Directions to ${nearest.name}</button>
+              <button onclick="openMapsPlace('${encodeURIComponent(nearest.name + " " + nearest.address)}')">Open in Google Maps</button>
+            </p>
+          </div>
+        `;
+
+        // Place markers on map
+        map.setCenter({ lat: destLatLng.lat, lng: destLatLng.lng });
+        new google.maps.Marker({ position: { lat: originLatLng.lat, lng: originLatLng.lng }, map, title: "Origin" });
+        new google.maps.Marker({ position: { lat: destLatLng.lat, lng: destLatLng.lng }, map, title: "Destination" });
+        new google.maps.Marker({ position: { lat: nearest.location.lat, lng: nearest.location.lng }, map, title: nearest.name });
+
+      }); // end response2
+    }); // end response1
+
+    return;
+  }
+
+  // For DRIVING / TRANSIT / WALKING: show route & distance
+  const travelMode = mode === "TRANSIT" ? google.maps.TravelMode.TRANSIT
+                    : mode === "WALKING" ? google.maps.TravelMode.WALKING
+                    : google.maps.TravelMode.DRIVING;
+
+  // Directions (draw route on map)
+  directionsService.route({
+    origin: new google.maps.LatLng(originLatLng.lat, originLatLng.lng),
+    destination: new google.maps.LatLng(destLatLng.lat, destLatLng.lng),
+    travelMode,
+    transitOptions: {},
+    drivingOptions: { departureTime: new Date() }
+  }, (result, status) => {
+    if (status === "OK") {
+      directionsRenderer.setDirections(result);
+      // Fit map to route bounds
+      const bounds = new google.maps.LatLngBounds();
+      const route = result.routes[0];
+      route.overview_path.forEach(p => bounds.extend(p));
+      map.fitBounds(bounds);
+    } else {
+      console.warn("Directions request failed:", status);
+    }
+  });
+
+  // Distance Matrix for estimated distance/time
+  distanceMatrixService.getDistanceMatrix({
+    origins: [ new google.maps.LatLng(originLatLng.lat, originLatLng.lng) ],
+    destinations: [ new google.maps.LatLng(destLatLng.lat, destLatLng.lng) ],
+    travelMode,
+    unitSystem: google.maps.UnitSystem.METRIC,
+  }, (response, status) => {
+    const out = document.getElementById("plannerResult");
+    out.innerHTML = `<h3>Travel Options</h3>`;
+    if (status !== "OK") {
+      out.innerHTML += `<p>Distance service error: ${status}</p>`;
+      return;
+    }
+
+    const element = response.rows[0].elements[0];
+    if (element.status !== "OK") {
+      out.innerHTML += `<p>Route not available: ${element.status}</p>`;
+      return;
+    }
+
+    out.innerHTML += `
+      <div class="travel-card">
+        <p><strong>From:</strong> ${originLatLng.label || originText || "Origin"}</p>
+        <p><strong>To:</strong> ${destLatLng.label}</p>
+        <p><strong>Mode:</strong> ${mode}</p>
+        <p><strong>Distance:</strong> ${element.distance.text}</p>
+        <p><strong>Estimated time:</strong> ${element.duration.text}</p>
+        <p>
+          <button onclick="openMapsDirections(${originLatLng.lat}, ${originLatLng.lng}, ${destLatLng.lat}, ${destLatLng.lng})">Open Directions</button>
+          <button onclick="visitListingByLatLng(${destLatLng.lat}, ${destLatLng.lng})">Open Destination in Maps</button>
+        </p>
+      </div>
+    `;
+
+    // Marker for destination and origin
+    new google.maps.Marker({ position: { lat: originLatLng.lat, lng: originLatLng.lng }, map, title: "Origin" });
+    new google.maps.Marker({ position: { lat: destLatLng.lat, lng: destLatLng.lng }, map, title: destLatLng.label });
+  });
+});
+
+// Open Google Maps directions (external)
+window.openMapsDirections = function(origLat, origLng, destLat, destLng){
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${origLat},${origLng}&destination=${destLat},${destLng}`;
+  window.open(url, "_blank");
+}
+
+// Open Google Maps place search
+window.openMapsPlace = function(q){
+  const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
+  window.open(url, "_blank");
+}
+
+// Helper to open a coordinate in maps
+window.visitListingByLatLng = function(lat, lng){
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  window.open(url, "_blank");
+}
