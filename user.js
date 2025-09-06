@@ -711,3 +711,80 @@ window.bookNow = function(listingId, title, price){
   const rzp = new Razorpay(options);
   rzp.open();
 }
+import { db, auth } from "./firebase.js";
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// Load wallet balance
+async function loadWallet(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const ref = doc(db, "wallets", user.uid);
+  const snap = await getDoc(ref);
+
+  if(snap.exists()){
+    document.getElementById("walletBalance").innerText = snap.data().balance;
+  } else {
+    await setDoc(ref, { balance: 0 });
+    document.getElementById("walletBalance").innerText = "0";
+  }
+
+  loadWalletTransactions();
+}
+
+// Load wallet transactions
+async function loadWalletTransactions(){
+  const user = auth.currentUser;
+  const q = query(collection(db, "transactions"), where("userId", "==", user.uid));
+  const snap = await getDocs(q);
+
+  const container = document.getElementById("walletTransactions");
+  container.innerHTML = "";
+
+  snap.forEach(docSnap => {
+    const t = docSnap.data();
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <p><strong>${t.type}</strong> - ₹${t.amount}</p>
+      <p>${t.method} | ${t.status}</p>
+      <small>${t.createdAt?.toDate().toLocaleString()}</small>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Wallet top-up using Razorpay
+window.topUpWallet = function(){
+  const options = {
+    key: "YOUR_RAZORPAY_KEY",
+    amount: 50000, // default ₹500 top-up
+    currency: "INR",
+    name: "BharatComfort Wallet",
+    handler: async function (response){
+      const user = auth.currentUser;
+      const ref = doc(db, "wallets", user.uid);
+      const snap = await getDoc(ref);
+      let balance = snap.exists() ? snap.data().balance : 0;
+      await updateDoc(ref, { balance: balance + 500 });
+
+      await addDoc(collection(db, "transactions"), {
+        userId: user.uid,
+        amount: 500,
+        type: "Wallet Top-Up",
+        method: "Razorpay",
+        status: "Success",
+        createdAt: serverTimestamp()
+      });
+
+      alert("Wallet topped up successfully!");
+      loadWallet();
+    }
+  };
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadWallet();
+});
