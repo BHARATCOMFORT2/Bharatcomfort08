@@ -690,3 +690,24 @@ auth.onAuthStateChanged(user => {
     loadMyTrips();
   }
 });
+window.bookNow = function(listingId, title, price){
+  const options = {
+    key: "YOUR_RAZORPAY_KEY", 
+    amount: price * 100, // amount in paise
+    currency: "INR",
+    name: "BharatComfort",
+    description: "Booking for " + title,
+    handler: function (response){
+      saveBooking(listingId, price, "Razorpay", response.razorpay_payment_id);
+    },
+    prefill: {
+      name: auth.currentUser?.displayName || "User",
+      email: auth.currentUser?.email || "user@example.com",
+    },
+    theme: {
+      color: "#3399cc"
+    }
+  };
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
