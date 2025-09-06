@@ -100,3 +100,38 @@ async function loadAnalytics(){
 loadUsers();
 loadListings();
 loadAnalytics();
+import { getDocs, collection, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+// Load All Bookings
+async function loadAllBookings(){
+  const tableBody = document.querySelector("#allBookings tbody");
+  tableBody.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "bookings"));
+  for (let bookingDoc of snapshot.docs){
+    const booking = bookingDoc.data();
+    const listing = await getDoc(doc(db, "listings", booking.listingId));
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${booking.name}</td>
+      <td>${listing.exists() ? listing.data().title : "Deleted"}</td>
+      <td>${booking.date}</td>
+      <td>${booking.guests}</td>
+      <td>${booking.status}</td>
+      <td>
+        <button onclick="updateBookingStatus('${bookingDoc.id}', 'Confirmed')">Confirm</button>
+        <button onclick="updateBookingStatus('${bookingDoc.id}', 'Rejected')">Reject</button>
+      </td>
+    `;
+    tableBody.appendChild(tr);
+  }
+}
+
+window.updateBookingStatus = async function(bookingId, status){
+  await updateDoc(doc(db, "bookings", bookingId), { status });
+  alert(`Booking ${status}`);
+  loadAllBookings();
+}
+
+loadAllBookings();
