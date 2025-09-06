@@ -190,3 +190,33 @@ plannerForm.addEventListener("submit", (e) => {
   document.getElementById("plannerResult").innerHTML =
     `<p>You can reach <strong>${dest}</strong> via <strong>${mode}</strong>. (Demo)</p>`;
 });
+// Book Now
+window.bookNow = async function(listingId, title){
+  const name = prompt(`Booking at ${title}\nEnter your name:`);
+  const guests = prompt("Number of guests:");
+  const date = prompt("Booking date (YYYY-MM-DD):");
+
+  if(name && guests && date){
+    await addDoc(collection(db, "bookings"), {
+      user: userId,
+      listingId: listingId,
+      name: name,
+      guests: parseInt(guests),
+      date: date,
+      status: "Pending",
+      createdAt: new Date()
+    });
+    alert("Booking request submitted!");
+  }
+}
+
+// Visit Listing
+window.visitListing = function(listingId){
+  window.location.href = `listing-detail.html?id=${listingId}`;
+}
+
+// Get Direction (using Google Maps)
+window.getDirection = function(place){
+  const query = encodeURIComponent(place);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
+}
