@@ -244,3 +244,12 @@ async function loadUserBookings(){
 }
 
 loadUserBookings();
+// Notify listing owner & assigned staff
+const ownerId = listingSnap.data().owner;
+sendNotification(ownerId, `New review on your listing: ${listing.title}`, "dashboard/partner.html#reviews");
+
+if(listing.staffAssigned && listing.staffAssigned.length > 0){
+  listing.staffAssigned.forEach(staffId => {
+    sendNotification(staffId, `New review on assigned listing: ${listing.title}`, "dashboard/staff.html#reviews");
+  });
+}
