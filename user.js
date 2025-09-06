@@ -788,3 +788,45 @@ window.topUpWallet = function(){
 auth.onAuthStateChanged(user => {
   if(user) loadWallet();
 });
+import { db, auth } from "./firebase.js";
+import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadUserBookings(){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const q = query(collection(db, "bookings"), where("userId", "==", user.uid));
+  const snap = await getDocs(q);
+
+  const container = document.getElementById("userBookingsContainer");
+  container.innerHTML = "";
+
+  if(snap.empty){
+    container.innerHTML = "<p>No bookings found.</p>";
+    return;
+  }
+
+  for(const docSnap of snap.docs){
+    const booking = docSnap.data();
+
+    // Fetch listing name
+    const listingRef = doc(db, "listings", booking.listingId);
+    const listingSnap = await getDoc(listingRef);
+    const listingName = listingSnap.exists() ? listingSnap.data().title : "Unknown Listing";
+
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <h3>${listingName}</h3>
+      <p><strong>Amount:</strong> ₹${booking.amount}</p>
+      <p><strong>Status:</strong> ${booking.status}</p>
+      <p><strong>Payment:</strong> ${booking.paymentMethod}</p>
+      <small>${booking.createdAt?.toDate().toLocaleString()}</small>
+    `;
+    container.appendChild(div);
+  }
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadUserBookings();
+});
