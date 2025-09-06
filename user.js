@@ -354,3 +354,34 @@ window.applyFilters = function(){
   renderListings(filtered);
   loadMap(filtered);
 }
+let map, markers = [];
+
+window.initMap = function(){
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 25.5941, lng: 85.1376 }, // Default Patna
+    zoom: 12,
+  });
+}
+
+function loadMap(listings){
+  if(!map) return;
+  markers.forEach(m => m.setMap(null));
+  markers = [];
+
+  listings.forEach(l => {
+    if(l.lat && l.lng){
+      const marker = new google.maps.Marker({
+        position: { lat: l.lat, lng: l.lng },
+        map,
+        title: l.title,
+      });
+
+      const info = new google.maps.InfoWindow({
+        content: `<h3>${l.title}</h3><p>${l.details}</p><button onclick="visitListing('${l.id}')">Visit</button>`
+      });
+
+      marker.addListener("click", () => info.open(map, marker));
+      markers.push(marker);
+    }
+  });
+}
