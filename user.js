@@ -287,3 +287,70 @@ onAuthStateChanged(auth, (user) => {
     loadNotifications(user.uid);
   }
 });
+let allListings = []; // Store listings globally
+
+// Load Approved Listings
+async function loadListings(){
+  const container = document.getElementById("listingContainer");
+  const select = document.getElementById("listingSelect");
+  container.innerHTML = "";
+  select.innerHTML = "";
+  allListings = [];
+
+  const q = query(collection(db, "listings"), where("status", "==", "Approved"));
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach((docSnap) => {
+    const listing = { id: docSnap.id, ...docSnap.data() };
+    allListings.push(listing);
+  });
+
+  renderListings(allListings);
+  loadMap(allListings);
+}
+
+function renderListings(listings){
+  const container = document.getElementById("listingContainer");
+  container.innerHTML = "";
+  listings.forEach((listing) => {
+    const div = document.createElement("div");
+    div.classList.add("listing-card");
+    div.innerHTML = `
+      <h3>${listing.title}</h3>
+      <p>${listing.details}</p>
+      <p><strong>Price:</strong> ${listing.price}</p>
+      <p><strong>Services:</strong> ${listing.services.join(", ")}</p>
+      <button onclick="bookNow('${listing.id}', '${listing.title}')">Book Now</button>
+      <button onclick="visitListing('${listing.id}')">Visit</button>
+      <button onclick="getDirection('${listing.title}')">Get Direction</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Apply Filters
+window.applyFilters = function(){
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const price = document.getElementById("priceFilter").value;
+  const service = document.getElementById("serviceFilter").value;
+
+  let filtered = allListings.filter(l => 
+    l.title.toLowerCase().includes(search) || 
+    l.details.toLowerCase().includes(search)
+  );
+
+  if(price){
+    filtered = filtered.filter(l => {
+      if(price === "low") return l.price < 1000;
+      if(price === "mid") return l.price >= 1000 && l.price <= 5000;
+      if(price === "high") return l.price > 5000;
+    });
+  }
+
+  if(service){
+    filtered = filtered.filter(l => l.services.includes(service));
+  }
+
+  renderListings(filtered);
+  loadMap(filtered);
+}
