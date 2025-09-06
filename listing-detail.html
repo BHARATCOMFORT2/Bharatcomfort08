@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listing Detail - BharatComfort</title>
+<link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<header>
+  <h1>Listing Detail</h1>
+  <a href="user.html">⬅ Back to Dashboard</a>
+</header>
+
+<main id="listingDetail"></main>
+
+<script type="module">
+import { db } from "../firebase-config.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+// Get listing ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const listingId = urlParams.get("id");
+
+async function loadListingDetail(){
+  const detailContainer = document.getElementById("listingDetail");
+  const listingDoc = await getDoc(doc(db, "listings", listingId));
+  if(listingDoc.exists()){
+    const listing = listingDoc.data();
+    detailContainer.innerHTML = `
+      <h2>${listing.title}</h2>
+      <p>${listing.details}</p>
+      <p><strong>Services:</strong> ${listing.services.join(", ")}</p>
+      <p><strong>Price:</strong> ${listing.price}</p>
+    `;
+  } else {
+    detailContainer.innerHTML = "<p>Listing not found.</p>";
+  }
+}
+
+loadListingDetail();
+</script>
+</body>
+</html>
