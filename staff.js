@@ -147,3 +147,5 @@ async function loadStaffBookings(){
 }
 
 loadStaffBookings();
+const reviewUser = listing.reviews[reviewIndex].user;
+sendNotification(reviewUser, `Your review on ${listing.title} got a reply!`, "dashboard/user.html#reviews");
