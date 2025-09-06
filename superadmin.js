@@ -184,3 +184,40 @@ onAuthStateChanged(auth, (user) => {
     loadNotifications(user.uid);
   }
 });
+import { db, auth } from "./firebase.js";
+import { collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadAllTransactions(){
+  const snap = await getDocs(collection(db, "transactions"));
+  const container = document.getElementById("allTransactions");
+  container.innerHTML = "";
+
+  snap.forEach(docSnap => {
+    const t = docSnap.data();
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <p><strong>${t.type}</strong> - ₹${t.amount}</p>
+      <p>User: ${t.userId || "N/A"} | Partner: ${t.partnerId || "N/A"}</p>
+      <p>${t.method} | ${t.status}</p>
+      <small>${t.createdAt?.toDate().toLocaleString()}</small>
+      ${t.type === "Withdrawal Request" && t.status === "Pending" ? `<button onclick="approveWithdrawal('${docSnap.id}', ${t.amount}, '${t.partnerId}')">Approve</button>` : ""}
+    `;
+    container.appendChild(div);
+  });
+}
+
+window.approveWithdrawal = async function(txnId, amount, partnerId){
+  const walletRef = doc(db, "wallets", partnerId);
+  await updateDoc(walletRef, { balance: 0 });
+
+  const txnRef = doc(db, "transactions", txnId);
+  await updateDoc(txnRef, { status: "Approved" });
+
+  alert("Withdrawal approved!");
+  loadAllTransactions();
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadAllTransactions();
+});
