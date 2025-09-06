@@ -220,3 +220,27 @@ window.getDirection = function(place){
   const query = encodeURIComponent(place);
   window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
 }
+async function loadUserBookings(){
+  const tableBody = document.querySelector("#userBookings tbody");
+  tableBody.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "bookings"));
+  for (let bookingDoc of snapshot.docs){
+    const booking = bookingDoc.data();
+    if(booking.user === userId){
+      const listingSnap = await getDoc(doc(db, "listings", booking.listingId));
+      const listingTitle = listingSnap.exists() ? listingSnap.data().title : "Deleted";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${listingTitle}</td>
+        <td>${booking.date}</td>
+        <td>${booking.guests}</td>
+        <td>${booking.status}</td>
+      `;
+      tableBody.appendChild(tr);
+    }
+  }
+}
+
+loadUserBookings();
