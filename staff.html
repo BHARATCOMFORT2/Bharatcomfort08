@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Dashboard - BharatComfort</title>
+<link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<header>
+  <h1>Staff Dashboard</h1>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<main>
+  <!-- Assigned Listings -->
+  <section>
+    <h2>Assigned Listings</h2>
+    <table id="staffListings">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Price</th>
+          <th>Services</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Reviews Management -->
+  <section>
+    <h2>Reviews & Replies</h2>
+    <div id="reviewsContainer"></div>
+  </section>
+</main>
+
+<script type="module" src="../js/staff.js"></script>
+</body>
+</html>
