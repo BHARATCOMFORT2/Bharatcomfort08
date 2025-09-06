@@ -221,3 +221,49 @@ window.approveWithdrawal = async function(txnId, amount, partnerId){
 auth.onAuthStateChanged(user => {
   if(user) loadAllTransactions();
 });
+import { db, auth } from "./firebase.js";
+import { collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function loadAllBookings(){
+  const snap = await getDocs(collection(db, "bookings"));
+  const container = document.getElementById("allBookingsContainer");
+  container.innerHTML = "";
+
+  if(snap.empty){
+    container.innerHTML = "<p>No bookings yet.</p>";
+    return;
+  }
+
+  for(const docSnap of snap.docs){
+    const booking = docSnap.data();
+
+    const listingRef = doc(db, "listings", booking.listingId);
+    const listingSnap = await getDoc(listingRef);
+    const listingName = listingSnap.exists() ? listingSnap.data().title : "Unknown Listing";
+
+    const div = document.createElement("div");
+    div.classList.add("trip-card");
+    div.innerHTML = `
+      <h3>${listingName}</h3>
+      <p><strong>User:</strong> ${booking.userId}</p>
+      <p><strong>Partner:</strong> ${booking.partnerId}</p>
+      <p><strong>Amount:</strong> ₹${booking.amount}</p>
+      <p><strong>Status:</strong> ${booking.status}</p>
+      <p><strong>Payment:</strong> ${booking.paymentMethod}</p>
+      <small>${booking.createdAt?.toDate().toLocaleString()}</small>
+      ${booking.status !== "Completed" ? `<button onclick="markBookingComplete('${docSnap.id}')">Mark Complete</button>` : ""}
+    `;
+    container.appendChild(div);
+  }
+}
+
+window.markBookingComplete = async function(bookingId){
+  const ref = doc(db, "bookings", bookingId);
+  await updateDoc(ref, { status: "Completed" });
+  alert("Booking marked as completed!");
+  loadAllBookings();
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) loadAllBookings();
+});
