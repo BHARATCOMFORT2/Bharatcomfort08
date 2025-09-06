@@ -97,3 +97,58 @@ window.saveTrip = async function () {
     alert("Failed to save trip.");
   }
 };
+import { db, auth } from "./firebase.js";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+let map, directionsService, directionsRenderer;
+let currentTrip = null;
+
+window.initMap = function () {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 25.5941, lng: 85.1376 }, // Default Patna
+    zoom: 6,
+  });
+
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(map);
+};
+
+window.calculateRoute = async function () {
+  const origin = document.getElementById("originInput").value;
+  const destination = document.getElementById("destinationInput").value;
+  const mode = document.getElementById("travelMode").value;
+
+  if (!origin || !destination) {
+    alert("Please enter both origin and destination");
+    return;
+  }
+
+  if (mode === "AIR" || mode === "RAIL") {
+    await showNearestStationsOrAirports(origin, destination, mode);
+    return;
+  }
+
+  // Default road/walk/bike/transit route
+  directionsService.route(
+    {
+      origin,
+      destination,
+      travelMode: google.maps.TravelMode[mode],
+    },
+    (result, status) => {
+      if (status === "OK") {
+        directionsRenderer.setDirections(result);
+        const route = result.routes[0].legs[0];
+        const routeData = {
+          origin,
+          destination,
+          mode,
+          distance: route.distance.text,
+          duration: route.duration.text,
+        };
+
+        currentTrip = routeData;
+        renderTripDetails(routeData);
+      } else {
+        alert("Could not calculate route: " + status);
